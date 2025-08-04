@@ -93,6 +93,7 @@ class WebRTC(Component, WebRTCConnectionMixin):
         icon_radius: int | None = None,
         button_labels: dict | None = None,
         variant: Literal["textbox", "wave"] = "wave",
+        full_screen: bool | None = True,
     ):
         """
         Parameters:
@@ -128,6 +129,7 @@ class WebRTC(Component, WebRTCConnectionMixin):
             pulse_color: Color of the pulse animation. Default is var(--color-accent) of the demo theme.
             button_labels: Text to display on the audio or video start, stop, waiting buttons. Dict with keys "start", "stop", "waiting" mapping to the text to display on the buttons.
             icon_radius: Border radius of the icon button expressed as a percentage of the button size. Default is 50%
+            full_screen: If True, the component will be full screen.
         """
         WebRTCConnectionMixin.__init__(self)
         self.variant = variant
@@ -147,6 +149,15 @@ class WebRTC(Component, WebRTCConnectionMixin):
         self.icon_radius = icon_radius
         self.pulse_color = pulse_color
         self.rtp_params = rtp_params or {}
+        if full_screen is None:
+            full_screen = True
+        self.full_screen = full_screen
+        if full_screen is False:
+            width = 500
+            height = 500
+        else:
+            width = 1280
+            height = 720
         self.button_labels = {
             "start": "",
             "stop": "",
@@ -165,16 +176,16 @@ class WebRTC(Component, WebRTCConnectionMixin):
         if track_constraints is None and modality == "video":
             track_constraints = {
                 "facingMode": "user",
-                "width": {"ideal": 500},
-                "height": {"ideal": 500},
+                "width": {"ideal": width},
+                "height": {"ideal": height},
                 "frameRate": {"ideal": 30},
             }
         if track_constraints is None and modality == "audio-video":
             track_constraints = {
                 "video": {
                     "facingMode": "user",
-                    "width": {"ideal": 500},
-                    "height": {"ideal": 500},
+                    "width": {"ideal": width},
+                    "height": {"ideal": height},
                     "frameRate": {"ideal": 30},
                 },
                 "audio": {

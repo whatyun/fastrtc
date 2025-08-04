@@ -3,7 +3,6 @@
   import type { I18nFormatter } from "@gradio/utils";
   import { createEventDispatcher } from "svelte";
   import { onMount } from "svelte";
-  import { fade } from "svelte/transition";
   import { StreamingBar } from "@gradio/statustracker";
   import {
     Circle,
@@ -21,7 +20,6 @@
   import { get_devices, set_available_devices } from "./stream_utils";
   import AudioWave from "./AudioWave.svelte";
   import TextboxWithMic from "./TextboxWithMic.svelte";
-  import WebcamPermissions from "./WebcamPermissions.svelte";
   import PulsingIcon from "./PulsingIcon.svelte";
   export let mode: "send-receive" | "send";
   export let value: WebRTCValue | null = null;
@@ -41,6 +39,7 @@
   export let button_labels: { start: string; stop: string; waiting: string };
   export let variant: "textbox" | "wave" = "wave";
   export let connection_state: "open" | "closed" | "unset" = "unset";
+  export let full_screen: boolean = true;
 
   let pending = false;
 
@@ -54,6 +53,7 @@
         "https://huggingface.co/datasets/freddyaboulton/bucket/resolve/main/pop-sounds.mp3",
       );
     }
+    access_mic();
   });
 
   let _on_change_cb = (msg: "change" | "tick" | "stopword" | any) => {
@@ -336,13 +336,16 @@
 
 {#if variant !== "textbox"}
   <BlockLabel
-    {show_label}
+    show_label={show_label && !full_screen}
     Icon={Music}
     float={false}
     label={label || i18n("audio.audio")}
   />
 {/if}
-<div class="audio-container">
+<div
+  class="audio-container"
+  class:full-screen={full_screen || full_screen === null}
+>
   <audio
     class="standard-player"
     class:hidden={true}
@@ -371,17 +374,6 @@
       bind:is_mic_muted
       {pending}
     />
-  {:else if !mic_accessed}
-    <div
-      in:fade={{ delay: 100, duration: 200 }}
-      title="grant webcam access"
-      style="height: 100%"
-    >
-      <WebcamPermissions
-        icon={Microphone}
-        on:click={async () => access_mic()}
-      />
-    </div>
   {:else}
     <AudioWave
       {audio_source_callback}
@@ -391,9 +383,14 @@
       {pulse_color}
       {pending}
       {icon_radius}
+      {full_screen}
     />
     <StreamingBar time_limit={_time_limit} />
-    <div class="button-wrap" class:pulse={stopword_recognized}>
+    <div
+      class="button-wrap"
+      class:pulse={stopword_recognized}
+      class:full-screen={full_screen || full_screen === null}
+    >
       <button
         on:click={start_stream}
         aria-label={"start stream"}
@@ -420,6 +417,7 @@
                   icon={Circle}
                   {icon_button_color}
                   {pulse_color}
+                  {full_screen}
                 />
               </div>
             {:else}
@@ -486,16 +484,11 @@
       {#if options_open && selected_device}
         <select
           class="select-wrap"
+          class:full-screen={full_screen || full_screen === null}
           aria-label="select source"
           use:click_outside={handle_click_outside}
           on:change={handle_device_change}
         >
-          <button
-            class="inset-icon"
-            on:click|stopPropagation={() => (options_open = false)}
-          >
-            <DropdownArrow />
-          </button>
           {#if available_audio_devices.length === 0}
             <option value="">{i18n("common.no_devices")}</option>
           {:else}
@@ -523,6 +516,14 @@
     align-items: center;
   }
 
+  .audio-container.full-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 100vw;
+  }
+
   :global(::part(wrapper)) {
     margin-bottom: var(--size-2);
   }
@@ -539,7 +540,11 @@
   .button-wrap {
     margin-top: var(--size-2);
     margin-bottom: var(--size-2);
-    background-color: var(--block-background-fill);
+    background-color: color-mix(
+      in srgb,
+      var(--block-background-fill) 50%,
+      transparent
+    );
     border: 1px solid var(--border-color-primary);
     border-radius: var(--radius-xl);
     padding: var(--size-1-5);
@@ -549,6 +554,19 @@
     border-radius: var(--radius-xl);
     line-height: var(--size-3);
     color: var(--button-secondary-text-color);
+  }
+
+  .button-wrap:hover {
+    background-color: var(--block-background-fill);
+  }
+
+  .button-wrap.full-screen {
+    position: relative;
+    padding: var(--size-4);
+    margin-top: var(--size-4);
+    margin-bottom: var(--size-4);
+    font-size: var(--text-lg);
+    min-height: var(--size-12);
   }
 
   @keyframes pulse {
@@ -629,6 +647,18 @@
     left: 50%;
     transform: translate(-50%, 0);
     max-width: var(--size-52);
+  }
+
+  .select-wrap.full-screen {
+    padding: var(--size-4);
+    font-size: var(--text-lg);
+    min-height: var(--size-14);
+    width: 150%;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
   }
 
   .select-wrap > option {

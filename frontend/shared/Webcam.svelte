@@ -37,7 +37,7 @@
   export let pulse_color: string = "var(--color-accent)";
   export let button_labels: { start: string; stop: string; waiting: string };
   export let connection_state: "open" | "closed" | "unset" = "unset";
-
+  export let full_screen: boolean = true;
   export const modify_stream: (state: "open" | "closed" | "waiting") => void = (
     state: "open" | "closed" | "waiting",
   ) => {
@@ -71,7 +71,12 @@
     close_stream: undefined;
   }>();
 
-  onMount(() => (canvas = document.createElement("canvas")));
+  onMount(() => {
+    canvas = document.createElement("canvas");
+    if (full_screen) {
+      access_webcam();
+    }
+  });
 
   const handle_device_change = async (event: InputEvent): Promise<void> => {
     const target = event.target as HTMLInputElement;
@@ -270,7 +275,7 @@
   const audio_source_callback = () => video_source.srcObject as MediaStream;
 </script>
 
-<div class="wrap">
+<div class="wrap" class:full-screen={full_screen || full_screen === null}>
   <StreamingBar time_limit={_time_limit} />
   {#if stream_state === "open" && include_audio}
     <div class="audio-indicator">
@@ -295,7 +300,7 @@
     playsinline={true}
   />
   <!-- svelte-ignore a11y-missing-attribute -->
-  {#if !webcam_accessed}
+  {#if !webcam_accessed && !full_screen}
     <div
       in:fade={{ delay: 100, duration: 200 }}
       title="grant webcam access"
@@ -376,6 +381,14 @@
     height: var(--size-full);
   }
 
+  .wrap.full-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
   .hide {
     display: none;
   }
@@ -383,12 +396,23 @@
   video {
     width: var(--size-full);
     height: var(--size-full);
+    object-fit: contain;
+  }
+
+  .full-screen video {
+    width: 100vw;
+    height: 100vh;
     object-fit: cover;
+    position: absolute;
   }
 
   .button-wrap {
     position: absolute;
-    background-color: var(--block-background-fill);
+    background-color: color-mix(
+      in srgb,
+      var(--block-background-fill) 50%,
+      transparent
+    );
     border: 1px solid var(--border-color-primary);
     border-radius: var(--radius-xl);
     padding: var(--size-1-5);
@@ -402,13 +426,16 @@
     color: var(--button-secondary-text-color);
   }
 
+  .button-wrap:hover {
+    background-color: var(--block-background-fill);
+  }
+
   .icon-with-text {
     min-width: var(--size-16);
     align-items: center;
     margin: 0 var(--spacing-xl);
     display: flex;
     justify-content: space-evenly;
-    /* Add gap between icon and text */
     gap: var(--size-2);
   }
 
