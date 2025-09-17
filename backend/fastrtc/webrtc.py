@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Iterable, Sequence
+from importlib.metadata import version
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -14,7 +15,6 @@ from typing import (
     cast,
 )
 
-from gradio import wasm_utils
 from gradio.components.base import Component, server
 from gradio_client import handle_file
 
@@ -33,8 +33,10 @@ if TYPE_CHECKING:
     from gradio.blocks import Block
     from gradio.components import Timer
 
-if wasm_utils.IS_WASM:
-    raise ValueError("Not supported in gradio-lite!")
+if version("gradio") < "5.46.0":
+    from gradio import wasm_utils
+    if wasm_utils.IS_WASM:
+        raise ValueError("Not supported in gradio-lite!")
 
 
 logger = logging.getLogger(__name__)
